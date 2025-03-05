@@ -1,0 +1,26 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+<title>Dashboard</title>
+</head>
+<body>
+    <div class="d-flex justify-content-center align-items-center vh-100">
+        <div class="card-dashboard p-3">
+            <h1 class="mb-2 text-center">My Account</h1>
+            <p class="text-center">Welcome, {{ current_user.name|capitalize }}!</p>
+            <div class="gif-container text-center mb-4">
+                <img src="{{ url_for('static', filename='images/plane.gif') }}" alt="Animation" class="dashboard-gif" width="150">
+            </div>
+            <button class="btn btn-register-passkey">Register Passkey</button>
+            <div class="mt-2 text-center">
+                <a href="{{ url_for('login') }}" class="login-link">Logout</a>
+            </div>
+        </div>
+    </div>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrap.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
