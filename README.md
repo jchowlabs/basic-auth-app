@@ -2,7 +2,8 @@
 
 This repository contains a basic implementation of an application that uses passwords, passkeys and biometric recognition. The application illustrates an example of how the registration, enrollment, login and account recovery can look like for general web-application logins. The application is built as a Python Flask application to allow a greater audience to review and understand how these systems work at a high level. 
 
-## Setup
+
+## Getting Started
 
 1. Clone the repository to your local computer
 2. Create a local Python environment for this application (python3 -m venv basic_auth_app)
@@ -11,7 +12,7 @@ This repository contains a basic implementation of an application that uses pass
 5. Run the application (python3 basic_auth_app
 6. Open browser and navigate to http://127.0.0.1:5000
 
-## Getting Started
+## Using Application
 
 1. Create an account on the registration page
 2. Login to the account with your email and password
