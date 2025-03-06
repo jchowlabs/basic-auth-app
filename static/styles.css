@@ -1,9 +1,11 @@
+/* Base Styles */
 body {
     background-color: #f5f5f5; 
     font-family: 'Roboto Mono', monospace; 
     color: #212121;
 }
 
+/* Card Styles */
 .card {
     background-color: #ffffff;
     border: none;
@@ -22,7 +24,7 @@ body {
     border: none;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     border-radius: 15px;
-    padding: 40px;
+    padding: 20px;
     width: 500px;
     height: 500px;
     display: flex;
@@ -31,6 +33,7 @@ body {
     justify-content: center;
 }
 
+/* Header Styles */
 .card-header {
     font-size: 1rem;
     font-weight: bold;
@@ -50,8 +53,8 @@ body {
 }
 
 .header-logo {
-    width: 45px; 
-    height: 45px;
+    width: 50px; 
+    height: 50px;
 }
 
 .header-text {
@@ -60,9 +63,10 @@ body {
 }
 
 .logo-container {
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
+/* Form Styles */
 form {
     width: 90%;
     display: flex;
@@ -88,6 +92,11 @@ form {
     padding: 10px 5px;
     width: 100%;
     font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:hover {
+    transform: scale(1.02);
 }
 
 .form-control:focus {
@@ -95,20 +104,14 @@ form {
     box-shadow: none;
     border-bottom: 1px solid #007bff; 
     color: #212121; 
+    transform: scale(1.02);
 }
 
 .form-control::placeholder {
     color: #666; 
 }
 
-.text-muted {
-    font-size: 0.8rem;
-    display: flex;
-    justify-content: center;
-    text-align: center;
-    margin: 0.5px 0;
-}
-
+/* Button Styles */
 .btn-custom-primary {
     background-color: #1D2840;
     color: #ffffff;
@@ -137,8 +140,7 @@ form {
     margin-bottom: 20px;
     font-size: 0.9rem;
     display: block;
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0 auto 20px;
 }
 
 .btn-register-passkey:hover {
@@ -162,18 +164,20 @@ form {
     background-color: #c82333; 
 }
 
+/* Link Styles */
 .register-link, .login-link {
     color: #666; 
-    text-decoration: none;
     font-size: 0.8rem;
     text-decoration: underline;
+    transition: all 0.3s ease-in-out;
 }
 
 .register-link:hover, .login-link:hover {
     color: #444;
-    text-decoration: underline;
+    transform: scale(1.05);
 }
 
+/* Alert Styles */
 .alert {
     margin-top: 20px;
     padding: 15px;
@@ -193,13 +197,50 @@ form {
     font-size: 0.7rem;
 }
 
-.gif-container {
-    margin: 2px 0;
+/* Dashboard Profile Styles */
+.profile-container {
+    margin: 2px 0 5px;
     padding: 2px;
 }
 
-.dashboard-gif {
+.dashboard-profile {
     max-width: 100%;
     height: auto;
     border-radius: 1px;
+    width: 150px;
+}
+
+/* User Info Styles */
+.user-info-container {
+    width: 80%;
+    margin: 15px 0;
+    padding: 5px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.info-label {
+    font-weight: 500;
+    color: #666;
+    font-size: 0.70rem;
+}
+
+.info-value {
+    color: #212121;
+    font-size: 0.70rem;
+}
+
+/* Text Utility */
+.text-muted {
+    font-size: 0.8rem;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    margin: 0.5px 0;
 }

@@ -17,3 +17,4 @@ SQLAlchemy==2.0.36
 typing_extensions==4.12.2
 Werkzeug==3.0.6
 WTForms==3.2.1
+cryptography==43.0.3
