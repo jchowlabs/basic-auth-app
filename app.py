@@ -1,34 +1,40 @@
-from flask import Flask, render_template, url_for, redirect, flash, jsonify, request, session
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import InputRequired, Length, ValidationError, Email
-from flask_bcrypt import Bcrypt
 import os
 import json
 import base64
 import secrets
 from datetime import datetime
+from flask import Flask, render_template, url_for, redirect, flash, jsonify, request, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
+from flask_wtf import FlaskForm
+from flask_bcrypt import Bcrypt
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import InputRequired, Length, ValidationError, Email
 
-# Creates our flask app - "app"
+# Creates a Flask app with security key
 app = Flask(__name__)
+app.config['SECRET_KEY'] = secrets.token_hex(32)
 
-# Creates a SQLite database instance to store hashed id, username, password
+# Configures the app with a SQLite database, secret key, and WebAuthn settings
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
-app.config['SECRET_KEY'] = 'jchowlabs' 
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['TEMPLATES_AUTO_RELOAD'] = False
+
+# WebAuthn settings
 app.config['WEBAUTHN_RP_ID'] = 'localhost'  
 app.config['WEBAUTHN_RP_NAME'] = 'Login Demo'
 app.config['WEBAUTHN_ORIGIN'] = 'https://localhost:5000'
+
+# Initializes the database and bcrypt
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
 
-# Enables handling between flask app and login system
+# Initializes the login manager
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = "login"
+login_manager.login_view = 'login'
 
-# Reloads user object from user ID stored in the session
+# Loads user object from database
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -40,11 +46,11 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(50), nullable=False, unique=True)
     password = db.Column(db.String(100), nullable=False)
 
-# WebAuthn Credentials Model
+# WebAuthn Credentials Model with index on credential_id
 class WebAuthnCredential(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    credential_id = db.Column(db.String(250), nullable=False)
+    credential_id = db.Column(db.String(250), nullable=False, index=True)
     public_key = db.Column(db.Text, nullable=False)
     sign_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -71,11 +77,11 @@ class LoginForm(FlaskForm):
     password = PasswordField(validators=[InputRequired(message="Password is required."), Length(min=4, max=20)], render_kw={"placeholder": "Password"})
     submit = SubmitField("Login")
 
-# Generate a random challenge
+# Generate a random challenge to be digitally signed by client during WebAuthN registration and authentication operations
 def generate_challenge():
     return base64.urlsafe_b64encode(secrets.token_bytes(32)).decode('utf-8').rstrip('=')
 
-# Route for login page - no login required
+# Default home route that enables login and registration
 @app.route('/', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
@@ -92,7 +98,7 @@ def login():
     return render_template('login.html', form=form)
 
 
-# Route for registration page - no login required
+# Route enables users to register for an account
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
@@ -109,7 +115,7 @@ def register():
             return redirect(url_for('login'))
     return render_template('register.html', form=form)
 
-# Route for dashboard - login required
+# Protected route that displays dashboard for logged in user
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
@@ -123,14 +129,13 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# WebAuthn registration routes
+# WebAuthN API route for registration
 @app.route('/api/webauthn/register/begin', methods=['POST'])
 @login_required
 def webauthn_register_begin():
-    # Generate registration options
-    challenge = generate_challenge()
     
-    # Store the challenge in the session for verification later
+    # Generates a challenge for registration
+    challenge = generate_challenge()
     session['challenge'] = challenge
     
     # Create registration options
@@ -156,31 +161,25 @@ def webauthn_register_begin():
             'requireResidentKey': False
         }
     }
-    
     return jsonify(options)
 
+# WebAuthN API route for completing registration
 @app.route('/api/webauthn/register/complete', methods=['POST'])
 @login_required
 def webauthn_register_complete():
     try:
         data = request.json
-        
-        # Get stored challenge from session
         challenge = session.get('challenge')
         if not challenge:
             return jsonify({'error': 'Challenge not found'}), 400
-            
-        # Clear the challenge from the session
         session.pop('challenge', None)
         
         # Verify attestation response from client
-        # In a production system, you would properly verify the attestation
-        # Here we'll just save the credential
-        
+        # In a production system, attestations must be properly validated
         credential_id = data['id']
         public_key = json.dumps(data['response'])
         
-        # Check if credential already exists
+        # Checks if credential already exists
         existing_cred = WebAuthnCredential.query.filter_by(credential_id=credential_id).first()
         if existing_cred:
             return jsonify({'error': 'Credential already registered'}), 400
@@ -193,26 +192,26 @@ def webauthn_register_complete():
             sign_count=0
         )
         
+        # Save credential to database
         db.session.add(new_credential)
         db.session.commit()
         
         return jsonify({'success': True, 'message': 'Passkey registered successfully'})
-        
+
+    # Returns error message if registration fails    
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# WebAuthn authentication routes
+# WebAuthN API route for authenticating user
 @app.route('/api/webauthn/authenticate/begin', methods=['POST'])
 def webauthn_authenticate_begin():
     try:
-        # Generate authentication challenge
+        # Generate challenge for authentication
         challenge = generate_challenge()
-        
-        # Store challenge in session for verification
         session['auth_challenge'] = challenge
         
         # Get all credentials to allow for authentication
-        # In a real app, you might want to filter by username first
+        # In production system, use filtering for optimization
         credentials = WebAuthnCredential.query.all()
         allowed_credentials = []
         
@@ -232,24 +231,22 @@ def webauthn_authenticate_begin():
         }
         
         return jsonify(options)
-        
+
+    # Returns error message if authentication fails    
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# WebAuthN API route for completing authentication
 @app.route('/api/webauthn/authenticate/complete', methods=['POST'])
 def webauthn_authenticate_complete():
     try:
         data = request.json
-        
-        # Get credential ID from authentication response
         credential_id = data['id']
         
         # Get challenge from session
         challenge = session.get('auth_challenge')
         if not challenge:
             return jsonify({'error': 'Challenge not found'}), 400
-        
-        # Clear challenge from session
         session.pop('auth_challenge', None)
         
         # Find credential in database
@@ -282,15 +279,15 @@ def webauthn_authenticate_complete():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Ensure the database file exists and create tables if not
+# Creates database if it does not exist
 if not os.path.exists('database.db'):
     with app.app_context():
         db.create_all()
 else:
-    # Update schema for existing database
     with app.app_context():
         db.create_all()
 
+# Runs the app with SSL context
 def main():
     app.run(ssl_context="adhoc")
 
