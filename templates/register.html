@@ -6,7 +6,7 @@
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <title>Register</title>
+    <title>Registration</title>
 </head>
 <body>
     <div class="d-flex justify-content-center align-items-center vh-100">
@@ -22,7 +22,7 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
+                        <div class="alert alert-{{ category }} alert-dismissing">
                             {{ message }}
                         </div>
                     {% endfor %}
@@ -30,15 +30,12 @@
             {% endwith %}
             <form method="POST" action="">
                 {{ form.hidden_tag() }}
-                {% if form.email.errors or form.name.errors or form.password.errors %}
+                {% if form.email.errors or form.name.errors %}
                     {% for error in form.email.errors %}
-                        <div class="alert alert-danger">{{ error }}</div>
+                        <div class="alert alert-danger alert-dismissing">{{ error }}</div>
                     {% endfor %}
                     {% for error in form.name.errors %}
-                        <div class="alert alert-danger">{{ error }}</div>
-                    {% endfor %}
-                    {% for error in form.password.errors %}
-                        <div class="alert alert-danger">{{ error }}</div>
+                        <div class="alert alert-danger alert-dismissing">{{ error }}</div>
                     {% endfor %}
                 {% endif %}
                 <div class="form-group">
@@ -50,12 +47,22 @@
                 <div class="form-group form-group-password">
                     {{ form.password(class="form-control") }}
                 </div>
+                <div id="password-requirements" class="password-requirements mb-2">
+                    <small class="text-muted">Password requirements:</small>
+                    <ul>
+                        <li id="req-length">At least 8 characters.</li>
+                        <li id="req-uppercase">At least one uppercase letter.</li>
+                        <li id="req-lowercase">At least one lowercase letter.</li>
+                        <li id="req-number">At least one number.</li>
+                        <li id="req-special">At least one special character (!@#$%^&*).</li>
+                    </ul>
+                </div>
                 <div class="form-group">
                     {{ form.submit(class="btn btn-custom btn-custom-primary btn-block") }}
                 </div>
             </form>
             <div class="mt-2 text-center">
-                <small class="text-muted">Already have account?</small>
+                <small class="text-muted">Already have an account?</small>
                 <a href="{{ url_for('login') }}" class="login-link">Login</a>
             </div>
         </div>
@@ -63,5 +70,7 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static', filename='js/password-validator.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>
 </body>
 </html>

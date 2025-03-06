@@ -22,7 +22,7 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">
+                        <div class="alert alert-{{ category }} alert-dismissing">
                             {{ message }}
                         </div>
                     {% endfor %}
@@ -32,7 +32,7 @@
                 {{ form.hidden_tag() }}
                 {% if form.email.errors %}
                     {% for error in form.email.errors %}
-                        <div class="alert alert-danger">{{ error }}</div>
+                        <div class="alert alert-danger alert-dismissing">{{ error }}</div>
                     {% endfor %}
                 {% endif %}
                 <div class="form-group">
@@ -40,7 +40,7 @@
                 </div>
                 {% if form.password.errors %}
                     {% for error in form.password.errors %}
-                        <div class="alert alert-danger">{{ error }}</div>
+                        <div class="alert alert-danger alert-dismissing">{{ error }}</div>
                     {% endfor %}
                 {% endif %}
                 <div class="form-group form-group-password">
@@ -66,5 +66,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     <script src="{{ url_for('static', filename='js/webauthn.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/flash-messages.js') }}"></script>
 </body>
 </html>
