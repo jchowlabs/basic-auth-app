@@ -33,6 +33,16 @@
                         {% endif %}
                     </span>
                 </div>
+                <div class="info-item">
+                    <span class="info-label">FaceID:</span>
+                    <span class="info-value">
+                        {% if has_face_id %}
+                            Registered
+                        {% else %}
+                            <a href="{{ url_for('face_registration') }}" id="add-faceid-btn" class="btn btn-sm btn-primary">Add Face</a>
+                        {% endif %}
+                    </span>
+                </div>
             </div>
             <div class="mt-2 text-center">
                 <a href="{{ url_for('logout') }}" class="login-link">Logout</a>

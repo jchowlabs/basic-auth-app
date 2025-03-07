@@ -149,6 +149,25 @@ form {
     cursor: pointer;
 }
 
+.btn-register-faceid {
+    background-color: #1D2840;
+    border: none;
+    color: #ffffff; 
+    width: 65%;
+    padding: 8px;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    display: block;
+    margin: 0 auto 20px;
+}
+
+.btn-register-faceid:hover {
+    background-color: #1D2840;
+    color: #ffffff;
+    cursor: pointer;
+}
+
 .btn-logout {
     background-color: #dc3545; 
     border: none;

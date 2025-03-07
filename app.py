@@ -2,6 +2,9 @@ import os
 import json
 import base64
 import secrets
+import pickle
+import numpy as np
+import face_recognition
 from datetime import datetime, timedelta
 from flask import Flask, render_template, url_for, redirect, flash, jsonify, request, session
 from flask_sqlalchemy import SQLAlchemy
@@ -14,6 +17,7 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import InputRequired, Length, ValidationError, Email, Regexp
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives import hashes
+from werkzeug.utils import secure_filename
 
 # Initializes a Flask app with secret keys and database URI
 app = Flask(__name__)
@@ -30,9 +34,9 @@ app.config['TEMPLATES_AUTO_RELOAD'] = False
 ##################################################################################################
 
 ################################ CONFIGURATION WITH NGROK ########################################
-app.config['WEBAUTHN_RP_ID'] = '1a46-2601-640-8d00-eda0-487-bd05-7e58-2578.ngrok-free.app'          # Replace with your own ngrok domain
+app.config['WEBAUTHN_RP_ID'] = '1a46-2601-640-8d00-eda0-487-bd05-7e58-2578.ngrok-free.app'          
 app.config['WEBAUTHN_RP_NAME'] = 'Login Demo'    
-app.config['WEBAUTHN_ORIGIN'] = 'https://1a46-2601-640-8d00-eda0-487-bd05-7e58-2578.ngrok-free.app' # Replace with your own ngrok domain
+app.config['WEBAUTHN_ORIGIN'] = 'https://1a46-2601-640-8d00-eda0-487-bd05-7e58-2578.ngrok-free.app' 
 ##################################################################################################
 
 # Initializes database, bcrypt, and Flask login manager
@@ -55,6 +59,7 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(100), nullable=False)
     failed_login_attempts = db.Column(db.Integer, default=0)
     locked_until = db.Column(db.DateTime, nullable=True)
+    has_face_id = db.Column(db.Boolean, default=False)  
 
 # WebAuthn Credential Model with index on credential_id
 class WebAuthnCredential(db.Model):
@@ -68,7 +73,6 @@ class WebAuthnCredential(db.Model):
 
 # Password validator for registration form
 def password_strength_check(form, field):
-
     password = field.data
     errors = []
 
@@ -124,9 +128,8 @@ def ratelimit_handler(e):
 
 # Default home route for logging in user
 @app.route('/', methods=['GET', 'POST'])
-@limiter.limit("5 per minute") 
+@limiter.limit("8 per minute") 
 def login():
-
     form = LoginForm()
 
     if form.validate_on_submit():
@@ -162,7 +165,6 @@ def login():
 # Route for registering new user
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-
     form = RegisterForm()
     
     if form.validate_on_submit():
@@ -187,7 +189,16 @@ def register():
 @login_required
 def dashboard():
     has_credentials = WebAuthnCredential.query.filter_by(user_id=current_user.id).first() is not None
-    return render_template('dashboard.html', has_credentials=has_credentials)
+    
+    # Check if face was just registered
+    if request.args.get('face_registered') == 'true':
+        flash('Face ID registration successful!', 'success')
+    
+    return render_template(
+        'dashboard.html', 
+        has_credentials=has_credentials,
+        has_face_id=current_user.has_face_id
+    )
 
 # Route that redirects logged out user to login page
 @app.route('/logout', methods=['GET', 'POST'])
@@ -200,7 +211,6 @@ def logout():
 @app.route('/api/webauthn/register/begin', methods=['POST'])
 @login_required
 def webauthn_register_begin():
-    
     # Generates a challenge for registration
     challenge = generate_challenge()
     session['challenge'] = challenge
@@ -228,7 +238,6 @@ def webauthn_register_begin():
 @app.route('/api/webauthn/register/complete', methods=['POST'])
 @login_required
 def webauthn_register_complete():
-
     # Registers new credential for user
     try:
         data = request.json
@@ -266,7 +275,6 @@ def webauthn_register_complete():
 # WebAuthN API route for authenticating user
 @app.route('/api/webauthn/authenticate/begin', methods=['POST'])
 def webauthn_authenticate_begin():
-
     # Authenticates user with credential
     try:
         # Generate challenge for authentication
@@ -300,7 +308,6 @@ def webauthn_authenticate_begin():
 # WebAuthN API route for completing authentication
 @app.route('/api/webauthn/authenticate/complete', methods=['POST'])
 def webauthn_authenticate_complete():
-
     # Authenticates user with credential
     try:
         data = request.json
@@ -338,6 +345,155 @@ def webauthn_authenticate_complete():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# FaceID route for registering a user's face - login required
+@app.route('/face-registration')
+@login_required
+def face_registration():
+    return render_template('face_capture.html')
+
+# Route for saving a user's face - login required
+@app.route('/api/save-face', methods=['POST'])
+@login_required
+def save_face():
+
+    if 'face_image' not in request.files:
+        return jsonify({'success': False, 'message': 'No image provided'})
+    
+    file = request.files['face_image']
+    
+    # Create directory if it doesn't exist
+    user_faces_dir = os.path.join(app.static_folder, 'faces')
+    if not os.path.exists(user_faces_dir):
+        os.makedirs(user_faces_dir)
+    
+    # Save image file with user's name
+    image_filename = f"user_{current_user.id}_face.jpg"
+    image_path = os.path.join(user_faces_dir, image_filename)
+    file.save(image_path)
+    
+    # Attempt to detect face in the image
+    try:
+        image = face_recognition.load_image_file(image_path)
+        face_locations = face_recognition.face_locations(image)
+        
+        if len(face_locations) == 0:
+
+            # Update user record
+            current_user.has_face_id = True
+            db.session.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Warning: No face detected, but image saved for testing'
+            })
+        
+        if len(face_locations) > 1:
+
+            # Update user record
+            current_user.has_face_id = True
+            db.session.commit()
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Warning: Multiple faces detected, using the first one'
+            })
+        
+        # Generate face encoding from the image
+        face_encoding = face_recognition.face_encodings(image, face_locations)[0]
+        
+        # Save encoding to file
+        encoding_filename = f"user_{current_user.id}_encoding.dat"
+        encoding_path = os.path.join(user_faces_dir, encoding_filename)
+        with open(encoding_path, 'wb') as f:
+            pickle.dump(face_encoding, f)
+        
+        # Update user record
+        current_user.has_face_id = True
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    
+    # Handle any exceptions
+    except Exception as e:
+
+        # Debugging
+        print(f"Error in face registration: {str(e)}")
+        
+        if os.path.exists(image_path) and os.path.getsize(image_path) > 0:
+            current_user.has_face_id = True
+            db.session.commit()
+            
+            return jsonify({
+                'success': True,
+                'message': 'Image saved but face detection had issues'
+            })
+        else:
+            # If we don't even have a valid image, return error
+            return jsonify({'success': False, 'message': f'Technical error: {str(e)}'})
+        
+# Route for face login
+@app.route('/api/face-login', methods=['POST'])
+def face_login():
+    if 'face_image' not in request.files:
+        return jsonify({'success': False, 'message': 'No image provided'})
+    
+    file = request.files['face_image']
+    
+    # Save temporarily
+    temp_path = os.path.join(app.static_folder, 'temp_face.jpg')
+    file.save(temp_path)
+    
+    # Attempt to detect face in the image
+    try:
+        unknown_image = face_recognition.load_image_file(temp_path)
+        unknown_face_locations = face_recognition.face_locations(unknown_image)
+        
+        if len(unknown_face_locations) != 1:
+            os.remove(temp_path)
+            return jsonify({
+                'success': False, 
+                'message': 'Please ensure only your face is visible'
+            })
+        
+        # Generate face encoding from the image
+        unknown_encoding = face_recognition.face_encodings(unknown_image, unknown_face_locations)[0]
+        
+        # Get all users with face ID
+        users_with_face = User.query.filter_by(has_face_id=True).all()
+        
+        for user in users_with_face:
+            encoding_file = os.path.join(app.static_folder, 'faces', f"user_{user.id}_encoding.dat")
+        
+            if not os.path.exists(encoding_file):
+                continue
+            
+            with open(encoding_file, 'rb') as f:
+                known_encoding = pickle.load(f)
+            
+            # Compare faces
+            results = face_recognition.compare_faces([known_encoding], unknown_encoding, tolerance=0.6)
+            
+            if results[0]:
+                os.remove(temp_path)
+                login_user(user)
+                return jsonify({
+                    'success': True, 
+                    'redirect_url': url_for('dashboard')
+                })
+        
+        # No match found
+        os.remove(temp_path)
+        return jsonify({
+            'success': False,
+            'message': 'Face not recognized. Please try again.'
+        })
+    
+    except Exception as e:
+        # Clean up
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        return jsonify({'success': False, 'message': str(e)})
 
 # Creates database if it does not exist
 if not os.path.exists('database.db'):
