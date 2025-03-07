@@ -168,6 +168,24 @@ form {
     cursor: pointer;
 }
 
+.btn-sm.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.btn-sm.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.btn-sm {
+    vertical-align: middle;
+    line-height: 1;
+}
+
 .btn-logout {
     background-color: #dc3545; 
     border: none;
@@ -238,8 +256,16 @@ form {
 }
 
 .alert-dismissing.fade-out {
+    transition: opacity 1s ease-out, transform 1s ease-out;
     opacity: 0;
     transform: translateY(-10px);
+}
+
+.alert-container {
+    width: 80%;
+    margin: 0 auto;
+    max-height: 100px;
+    overflow: hidden;
 }
 
 /* Keyframe animation for fade in */
@@ -267,6 +293,12 @@ form {
     width: 150px;
 }
 
+.welcome-text {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
 /* User Info Styles */
 .user-info-container {
     width: 80%;
@@ -277,15 +309,23 @@ form {
 .info-item {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
     padding: 4px 0;
     border-bottom: 1px solid #eee;
+    height: 32px;
+    align-items: center;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
 }
 
 .info-label {
     font-weight: 500;
     color: #666;
     font-size: 0.90rem;
+    min-width: 80px;
+    display: inline-block;
 }
 
 .info-value {
@@ -323,4 +363,307 @@ form {
 .password-requirements li.valid::before {
     content: "✓";
     color: #28a745;
+}
+
+/* Face Capture Page Styles */
+.face-capture-body {
+    margin: 0;
+    padding: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding: 15px;
+    box-sizing: border-box;
+}
+
+.face-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.content-container {
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.capture-container {
+    width: 100%;
+    max-width: 345px;
+    height: auto;
+    aspect-ratio: 0.86 / 1;
+    margin: 0 auto;
+    position: relative;
+}
+
+.face-outline {
+    width: 100%;
+    height: 100%;
+    border-radius: 50% / 40%; 
+    border: 4px dashed #666;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.profile-image {
+    width: 95%;
+    height: auto;
+    opacity: 0.7;
+    max-height: 95%;
+    object-fit: contain;
+    filter: grayscale(0.5);
+}
+
+.face-instructions {
+    margin-top: 15px;
+    color: #1D2840;
+    font-size: 1rem;
+    text-align: center;
+    width: 100%;
+}
+
+.instruction-step {
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+#video-container {
+    width: 100%;
+    height: 100%;
+    border-radius: 50% / 40%; 
+    margin: 0 auto;
+    overflow: hidden;
+    display: none;
+    position: relative;
+    border: 3px solid #ddd;
+}
+
+#video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: scale(1.25);
+    transform-origin: center;
+}
+
+#canvas {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+}
+
+.countdown {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    display: none;
+}
+
+.controls {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+/* Face capture specific buttons - separate from login buttons */
+.face-btn {
+    padding: 8px 20px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    width: 140px;
+    text-align: center;
+}
+
+.face-btn-primary {
+    background-color: #1D2840;
+    color: white;
+    border: none;
+}
+
+.face-btn-primary:hover {
+    background-color: #1D2840;
+    color: white;
+}
+
+.face-btn-secondary {
+    background-color: transparent;
+    color: #0056b3;
+    border: 1px solid #0056b3;
+    width: 140px;
+}
+
+.face-btn-secondary:hover {
+    background-color: rgba(0, 86, 179, 0.1);
+    color: #1D2840;
+}
+
+.timer-bar {
+    height: 4px;
+    background-color: #0056b3;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    transform-origin: left;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 600px) {
+    .face-card {
+        max-width: 95%;
+    }
+    
+    .capture-container {
+        max-width: 280px;
+    }
+    
+    .face-outline {
+        border-width: 3px;
+    }
+    
+    #video-container {
+        border-width: 2px;
+    }
+    
+    .face-btn {
+        min-width: 130px;
+    }
+
+    .face-btn-secondary {
+        width: 130px;
+    }
+    
+    .controls {
+        gap: 12px;
+    }
+    
+    .face-instructions {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .content-container {
+        padding: 15px 10px;
+    }
+    
+    .capture-container {
+        max-width: 230px;
+    }
+    
+    .face-outline {
+        border-width: 2px;
+    }
+    
+    .countdown {
+        font-size: 4rem;
+    }
+    
+    .face-btn {
+        padding: 7px 15px;
+        font-size: 0.85rem;
+        min-width: 110px;
+    }
+
+    .face-btn-secondary {
+        width: 110px;
+    }
+    
+    .controls {
+        gap: 10px;
+    }
+    
+    .face-instructions {
+        font-size: 0.85rem;
+        margin-top: 10px;
+    }
+    
+    .instruction-step {
+        margin-bottom: 4px;
+    }
+}
+
+@media (max-height: 700px) {
+    .capture-container {
+        max-height: 60vh;
+    }
+    
+    .content-container {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+}
+
+/* Orientation-specific adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+    .face-card {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        max-width: 90%;
+    }
+    
+    .content-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 10px;
+    }
+    
+    .capture-container {
+        max-width: 200px;
+        max-height: 70vh;
+        margin-right: 15px;
+        flex: 0 0 auto;
+    }
+    
+    .face-instructions {
+        flex: 1 1 auto;
+        text-align: left;
+        margin-top: 0;
+        padding-left: 10px;
+    }
+    
+    .controls {
+        flex: 1 1 100%;
+        justify-content: flex-start;
+        margin-top: 15px;
+        padding-left: 10px;
+        border-top: none;
+        padding-top: 0;
+        order: 3;
+    }
 }

@@ -1,19 +1,33 @@
 <!DOCTYPE html>
+<html lang="en">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="{{ csrf_token() if csrf_token else '' }}">
 <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 <title>Dashboard</title>
+</style>
 </head>
 <body>
     <div class="d-flex justify-content-center align-items-center vh-100">
         <div class="card-dashboard p-2">
-            <div class="profile-container text-center mb-4">
-                <img src="{{ url_for('static', filename='images/blank-profile.jpg') }}" alt="Animation" class="dashboard-profile" width="150">
+            <div class="alert-container" id="alert-container">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissing" role="alert" id="flash-message-{{ loop.index }}">
+                                {{ message }}
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
             </div>
-            <p class="text-center">Welcome, {{ current_user.name|capitalize }}!</p>
-            
+            <p class="text-center welcome-text">Welcome {{ current_user.name|capitalize }}!</p>
             <div class="user-info-container">
                 <div class="info-item">
                     <span class="info-label">Email:</span>
@@ -27,7 +41,7 @@
                     <span class="info-label">Passkey:</span>
                     <span class="info-value">
                         {% if has_credentials %}
-                            Registered
+                            <button id="delete-passkey-btn" class="btn btn-sm btn-danger">Delete Passkey</button>
                         {% else %}
                             <button id="add-passkey-btn" class="btn btn-sm btn-primary">Add Passkey</button>
                         {% endif %}
@@ -37,21 +51,32 @@
                     <span class="info-label">FaceID:</span>
                     <span class="info-value">
                         {% if has_face_id %}
-                            Registered
+                            <button id="delete-face-btn" class="btn btn-sm btn-danger">Delete Face</button>
                         {% else %}
                             <a href="{{ url_for('face_registration') }}" id="add-faceid-btn" class="btn btn-sm btn-primary">Add Face</a>
                         {% endif %}
                     </span>
                 </div>
+                <div class="info-item">
+                    <span class="info-label">VoiceID:</span>
+                    <span class="info-value">
+                        {% if has_voice_id %}
+                            <button id="delete-voice-btn" class="btn btn-sm btn-danger">Delete Voice</button>
+                        {% else %}
+                            <button id="add-voice-btn" class="btn btn-sm btn-primary">Add Voice</button>
+                        {% endif %}
+                    </span>
+                </div>
             </div>
-            <div class="mt-2 text-center">
+            <div class="mt-3 text-center">
                 <a href="{{ url_for('logout') }}" class="login-link">Logout</a>
             </div>
         </div>
     </div>
-<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-<script src="{{ url_for('static', filename='js/webauthn.js') }}"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="{{ url_for('static', filename='js/webauthn.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>

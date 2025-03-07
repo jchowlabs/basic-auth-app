@@ -29,14 +29,14 @@ app.config['TEMPLATES_AUTO_RELOAD'] = False
 
 ############################### CONFIGURATION FOR LOCALHOST ######################################
 #app.config['WEBAUTHN_RP_ID'] = 'localhost'  
-#app.config['WEBAUTHN_RP_NAME'] = 'Login Demo'
+#app.config['WEBAUTHN_RP_NAME'] = 'jchowlabs'
 #app.config['WEBAUTHN_ORIGIN'] = 'https://localhost:5000'
 ##################################################################################################
 
 ################################ CONFIGURATION WITH NGROK ########################################
-app.config['WEBAUTHN_RP_ID'] = '1a46-2601-640-8d00-eda0-487-bd05-7e58-2578.ngrok-free.app'          
-app.config['WEBAUTHN_RP_NAME'] = 'Login Demo'    
-app.config['WEBAUTHN_ORIGIN'] = 'https://1a46-2601-640-8d00-eda0-487-bd05-7e58-2578.ngrok-free.app' 
+app.config['WEBAUTHN_RP_ID'] = '5936-2601-640-8d00-eda0-39f4-3dfd-e104-a878.ngrok-free.app'           
+app.config['WEBAUTHN_RP_NAME'] = 'jchowlabs'    
+app.config['WEBAUTHN_ORIGIN'] = 'https://5936-2601-640-8d00-eda0-39f4-3dfd-e104-a878.ngrok-free.app' 
 ##################################################################################################
 
 # Initializes database, bcrypt, and Flask login manager
@@ -128,7 +128,7 @@ def ratelimit_handler(e):
 
 # Default home route for logging in user
 @app.route('/', methods=['GET', 'POST'])
-@limiter.limit("8 per minute") 
+@limiter.limit("10 per minute") 
 def login():
     form = LoginForm()
 
@@ -177,8 +177,10 @@ def register():
             new_user = User(name=form.name.data, email=form.email.data, password=hashed_password)
             db.session.add(new_user)
             db.session.commit()
-            flash('Account successfully created!', 'success')
-            return redirect(url_for('login'))
+            
+            # Log in the user automatically after registration
+            login_user(new_user)
+            return redirect(url_for('dashboard'))
     
     if form.errors and 'password' in form.errors:
         flash('Please ensure your password meets all requirements.', 'warning')
@@ -194,10 +196,15 @@ def dashboard():
     if request.args.get('face_registered') == 'true':
         flash('Face ID registration successful!', 'success')
     
+    has_voice_id = False  # Default to False for now
+    #if request.args.get('voice_registered') == 'true':
+    #    flash('Voice ID registration successful!', 'success
+    
     return render_template(
-        'dashboard.html', 
+        'dashboard.html',
         has_credentials=has_credentials,
-        has_face_id=current_user.has_face_id
+        has_face_id=current_user.has_face_id,
+        has_voice_id=has_voice_id  # Add this variable
     )
 
 # Route that redirects logged out user to login page
@@ -346,6 +353,39 @@ def webauthn_authenticate_complete():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Route for deleting all previously registered passkeys
+@app.route('/api/delete-passkey', methods=['POST'])
+@login_required
+def delete_passkey():
+    try:
+        # Delete all credentials for the current user
+        credentials = WebAuthnCredential.query.filter_by(user_id=current_user.id).all()
+        
+        if not credentials:
+            flash('No passkey found to delete.', 'warning')
+            return jsonify({'success': False})
+            
+        for credential in credentials:
+            db.session.delete(credential)
+        
+        db.session.commit()
+        
+        flash('Passkey has been deleted successfully.', 'success')
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"Error deleting passkey: {str(e)}")
+        flash('Error deleting passkey. Please try again.', 'danger')
+        return jsonify({'success': False, 'error': str(e)})
+
+# Error message definitions for face registration and login  
+FACE_ERROR_MESSAGES = {
+    'NO_FACE': 'Please ensure your face is in the circle.',
+    'MULTIPLE_FACES': 'Only one face in the circle please...',
+    'NOT_RECOGNIZED': 'Face not recognized. Try another login method.',
+    'TECHNICAL_ERROR': 'An error occured. Please try again.'
+}
+
 # FaceID route for registering a user's face - login required
 @app.route('/face-registration')
 @login_required
@@ -358,7 +398,7 @@ def face_registration():
 def save_face():
 
     if 'face_image' not in request.files:
-        return jsonify({'success': False, 'message': 'No image provided'})
+        return jsonify({'success': False, 'message': FACE_ERROR_MESSAGES['TECHNICAL_ERROR']})
     
     file = request.files['face_image']
     
@@ -378,25 +418,25 @@ def save_face():
         face_locations = face_recognition.face_locations(image)
         
         if len(face_locations) == 0:
-
-            # Update user record
+            # Update user record 
             current_user.has_face_id = True
             db.session.commit()
             
             return jsonify({
-                'success': True, 
-                'message': 'Warning: No face detected, but image saved for testing'
+                'success': True,
+                'redirect_url': url_for('dashboard', face_registered='true'),
+                'message': FACE_ERROR_MESSAGES['NO_FACE']
             })
         
         if len(face_locations) > 1:
-
             # Update user record
             current_user.has_face_id = True
             db.session.commit()
             
             return jsonify({
-                'success': True, 
-                'message': 'Warning: Multiple faces detected, using the first one'
+                'success': True,
+                'redirect_url': url_for('dashboard', face_registered='true'), 
+                'message': FACE_ERROR_MESSAGES['MULTIPLE_FACES']
             })
         
         # Generate face encoding from the image
@@ -412,11 +452,13 @@ def save_face():
         current_user.has_face_id = True
         db.session.commit()
         
-        return jsonify({'success': True})
+        return jsonify({
+            'success': True,
+            'redirect_url': url_for('dashboard', face_registered='true')
+        })
     
     # Handle any exceptions
     except Exception as e:
-
         # Debugging
         print(f"Error in face registration: {str(e)}")
         
@@ -426,17 +468,18 @@ def save_face():
             
             return jsonify({
                 'success': True,
-                'message': 'Image saved but face detection had issues'
+                'redirect_url': url_for('dashboard', face_registered='true'),
+                'message': FACE_ERROR_MESSAGES['TECHNICAL_ERROR']
             })
         else:
             # If we don't even have a valid image, return error
-            return jsonify({'success': False, 'message': f'Technical error: {str(e)}'})
-        
+            return jsonify({'success': False, 'message': FACE_ERROR_MESSAGES['TECHNICAL_ERROR']})
+
 # Route for face login
 @app.route('/api/face-login', methods=['POST'])
 def face_login():
     if 'face_image' not in request.files:
-        return jsonify({'success': False, 'message': 'No image provided'})
+        return jsonify({'success': False, 'message': FACE_ERROR_MESSAGES['TECHNICAL_ERROR']})
     
     file = request.files['face_image']
     
@@ -449,11 +492,18 @@ def face_login():
         unknown_image = face_recognition.load_image_file(temp_path)
         unknown_face_locations = face_recognition.face_locations(unknown_image)
         
-        if len(unknown_face_locations) != 1:
+        if len(unknown_face_locations) == 0:
             os.remove(temp_path)
             return jsonify({
                 'success': False, 
-                'message': 'Please ensure only your face is visible'
+                'message': FACE_ERROR_MESSAGES['NO_FACE']
+            })
+        
+        if len(unknown_face_locations) > 1:
+            os.remove(temp_path)
+            return jsonify({
+                'success': False, 
+                'message': FACE_ERROR_MESSAGES['MULTIPLE_FACES']
             })
         
         # Generate face encoding from the image
@@ -486,14 +536,45 @@ def face_login():
         os.remove(temp_path)
         return jsonify({
             'success': False,
-            'message': 'Face not recognized. Please try again.'
+            'message': FACE_ERROR_MESSAGES['NOT_RECOGNIZED']
         })
     
     except Exception as e:
         # Clean up
         if os.path.exists(temp_path):
             os.remove(temp_path)
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({'success': False, 'message': FACE_ERROR_MESSAGES['TECHNICAL_ERROR']})
+
+# Route for deleting previously registered face
+@app.route('/api/delete-face', methods=['POST'])
+@login_required
+def delete_face():
+    try:
+        # Define paths to face data files
+        user_faces_dir = os.path.join(app.static_folder, 'faces')
+        image_path = os.path.join(user_faces_dir, f"user_{current_user.id}_face.jpg")
+        encoding_path = os.path.join(user_faces_dir, f"user_{current_user.id}_encoding.dat")
+        
+        # Delete the face image if it exists
+        if os.path.exists(image_path):
+            os.remove(image_path)
+            
+        # Delete the face encoding if it exists
+        if os.path.exists(encoding_path):
+            os.remove(encoding_path)
+        
+        # Update user record
+        current_user.has_face_id = False
+        db.session.commit()
+        
+        flash('Face ID has been deleted successfully.', 'success')
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        print(f"Error deleting face: {str(e)}")
+        flash('Error deleting Face ID. Please try again.', 'danger')
+        return jsonify({'success': False, 'error': str(e)})
+
 
 # Creates database if it does not exist
 if not os.path.exists('database.db'):
