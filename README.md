@@ -13,7 +13,7 @@ This repository contains a basic implementation of an application that uses pass
 3. Activate the environment (source bin/activate)
 4. Install the requirements (pip3 install -r requirements.txt)
 5. Run the application (python3 basic_auth_app
-6. Open browser and navigate to http://127.0.0.1:5000
+6. Open browser and navigate to https://localhost:5000
 
 ### Using Application
 
