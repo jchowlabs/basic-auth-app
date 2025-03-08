@@ -1,4 +1,4 @@
-## Basic Authentication App
+## Login Demo
 
 ### Overview
 
